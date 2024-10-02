@@ -23,3 +23,10 @@ Cargo.lock
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Database
+db.sqlite3
+postgres_data/
+
+# Log files
+log/

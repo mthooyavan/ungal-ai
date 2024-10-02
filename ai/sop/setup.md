@@ -6,7 +6,7 @@ This document provides a step-by-step guide to set up the backend environment an
 
 ## Prerequisites
 
-- [ ] **Install Docker and Docker Compose**
+- [x] **Install Docker and Docker Compose**
     - **Install Docker:**
         - **Windows and macOS:**
             - Download and install Docker Desktop from [Docker's official website](https://www.docker.com/products/docker-desktop).
@@ -28,7 +28,7 @@ This document provides a step-by-step guide to set up the backend environment an
 
 ## Setting Up the Backend Environment with Docker
 
-- [ ] **Create Project Directory Structure**
+- [x] **Create Project Directory Structure**
     - Open a terminal and navigate to your desired projects directory.
     - Create a directory for the backend project:
         ```bash
@@ -39,18 +39,18 @@ This document provides a step-by-step guide to set up the backend environment an
         cd backend/ungal-ai
         ```
 
-- [ ] **Initialize a New Rust Project**
+- [x] **Initialize a New Rust Project**
     - Initialize the Rust application:
         ```bash
         cargo new . --bin
         ```
     - This creates a new Rust binary application in the current directory.
 
-- [ ] **Set Up the Dockerfile**
+- [x] **Set Up the Dockerfile**
     - Create a `Dockerfile` in the `backend/ungal-ai` directory.
-    - Define the necessary steps to containerize the Rust application (do not include code here).
+    - Define the necessary steps to containerize the Rust application.
 
-- [ ] **Configure Docker Compose**
+- [x] **Configure Docker Compose**
     - Navigate to the root directory of your project (where `backend` is located).
     - Create a `docker-compose.yml` file.
     - Define the services:
@@ -65,34 +65,38 @@ This document provides a step-by-step guide to set up the backend environment an
             - Expose port `5432` to the host.
             - Configure volumes for data persistence.
 
-- [ ] **Create an Environment Variables File**
+- [x] **Create an Environment Variables File**
     - In the root directory, create a `.env` file.
     - Add the necessary environment variables:
         ```
         POSTGRES_USER=ungal_user
-        POSTGRES_PASSWORD=your_password
+        POSTGRES_PASSWORD=your_secure_password_here
         POSTGRES_DB=ungal_ai_db
-        DATABASE_URL=postgres://ungal_user:your_password@db:5432/ungal_ai_db
+        DATABASE_URL=postgres://ungal_user:your_secure_password_here@db:5432/ungal_ai_db
         ```
-    - **Note:** Replace `your_password` with a secure password.
+    - **Note:** Replace `your_secure_password_here` with a secure password.
     - Ensure the `.env` file is added to `.gitignore` to prevent it from being committed to version control.
 
-- [ ] **Modify Application Configuration**
+- [x] **Modify Application Configuration**
     - Update the application to read configuration from environment variables.
     - Ensure database connection strings and secret keys are not hard-coded.
+
+- [x] **Add Dependencies to `Cargo.toml`**
+    - Update `Cargo.toml` with the required dependencies:
+        - `axum`, `tokio`, `sqlx`, `dotenvy`, etc.
 
 ---
 
 ## Building and Running Services
 
-- [ ] **Build Docker Images**
+- [x] **Build Docker Images**
     - From the root directory, run:
         ```bash
         docker-compose build
         ```
     - This command builds the images for all services defined in `docker-compose.yml`.
 
-- [ ] **Start the Services**
+- [x] **Start the Services**
     - Run the following command to start the containers:
         ```bash
         docker-compose up
@@ -102,7 +106,7 @@ This document provides a step-by-step guide to set up the backend environment an
         docker-compose up -d
         ```
 
-- [ ] **Verify Services are Running**
+- [x] **Verify Services are Running**
     - List running containers:
         ```bash
         docker ps
@@ -117,30 +121,39 @@ This document provides a step-by-step guide to set up the backend environment an
 
 ## Managing Database Migrations
 
-- [ ] **Set Up Database Migrations**
+- [x] **Set Up Database Migrations**
     - Use `sqlx` for managing database migrations.
-    - Create a `migrations` directory in the `backend/ungal-ai` project.
+    - Create a `migrations` directory in the `backend/ungal-ai` project:
+        ```bash
+        cd backend/ungal-ai
+        mkdir migrations
+        ```
 
-- [ ] **Create Migration Scripts**
+- [x] **Create Migration Scripts**
     - Generate new migration files using `sqlx`:
         ```bash
         sqlx migrate add create_users_table
+        sqlx migrate add create_ai_models_table
+        sqlx migrate add create_conversations_table
+        sqlx migrate add create_messages_table
         ```
-    - Add SQL statements to define the database schema.
+    - Add SQL statements to define the database schema based on `schema.md`.
 
-- [ ] **Run Migrations Inside Docker**
-    - Access the backend container's shell:
+- [x] **Implement Migrations**
+    - Open each migration file in the `migrations` directory.
+    - Add the SQL statements to create the tables and indexes as defined in `schema.md`.
+    - Ensure that the `down.sql` files contain the correct statements to revert the migrations.
+
+- [ ] **Run Migrations Using Makefile**
+    - From the root directory, run:
         ```bash
-        docker-compose exec backend sh
+        make migrate
         ```
-    - Run the migration command:
-        ```bash
-        sqlx migrate run
-        ```
-    - Exit the container shell:
-        ```bash
-        exit
-        ```
+    - This command will run the migrations inside the Docker container.
+
+- [x] **Update Application Code**
+    - Modify the Rust application code to use the new database schema.
+    - Update any existing database queries or models to reflect the new structure.
 
 ---
 
@@ -203,7 +216,10 @@ This document provides a step-by-step guide to set up the backend environment an
 
 - [ ] **Version Control**
     - Commit changes to the repository.
-    - Ensure `.gitignore` includes unnecessary or sensitive files (e.g., `node_modules`, `.env`).
+    - Ensure `.gitignore` includes unnecessary or sensitive files:
+        - Updated with Rust-specific ignores from GitHub's Rust.gitignore template.
+        - Added IDE-specific and OS-specific ignores.
+        - Kept `.env` in the ignore list to prevent committing sensitive information.
 
 - [ ] **Prepare for Deployment**
     - Optimize Docker images (e.g., multi-stage builds).
@@ -215,3 +231,29 @@ This document provides a step-by-step guide to set up the backend environment an
 ---
 
 *Note:* This setup guide provides a bullet point checklist with commands and step-by-step processes needed to set up the backend using Docker and Docker Compose, without including code examples.
+
+---
+
+## Managing Database Migrations
+
+- [ ] **Handle Migration Conflicts**
+    - If encountering migration conflicts, follow these steps:
+        1. Check the current migration status:
+            ```bash
+            make migration-status
+            ```
+        2. If some migrations are applied and others are not, create a new empty migration:
+            ```bash
+            sqlx migrate add fix_migration_conflicts
+            ```
+        3. Run the migrations again:
+            ```bash
+            make migrate
+            ```
+    - If problems persist, consider reverting all migrations and reapplying:
+        ```bash
+        make migrate-revert-all
+        make migrate
+        ```
+
+---
